@@ -10,5 +10,8 @@ services:
       MYSQL_USER: development
       MYSQL_PASSWORD: development
       MYSQL_DATABASE: task_mate
+      MYSQL_TCP_PORT: 3307
     ports:
-      - 127.0.0.1:4306:4306
+      - 3307:3307
+    expose:
+      - 3307

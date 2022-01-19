@@ -43,7 +43,12 @@ interface ApolloContext {
 
 const resolvers: IResolvers<any, ApolloContext> = {
   Query: {
-    tasks(parent, args, context) {
+    async tasks(parent, args, context) {
+      const result = await context.db.query(
+        'SELECT "HELLO WORLD" as hello_world'
+      );
+      await db.end();
+      console.log(result);
       return [];
     },
     task() {
@@ -58,6 +63,7 @@ const db = mysql({
     user: process.env.MYSQL_USER,
     database: process.env.MYSQL_DATABASE,
     password: process.env.MYSQL_PASSWORD,
+    port: process.env.MYSQL_PORT,
   },
 });
 
