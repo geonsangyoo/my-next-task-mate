@@ -1,7 +1,8 @@
 import { ApolloServer, gql } from 'apollo-server-micro';
-import { IResolvers } from '@graphql-tools/utils';
 
 import mysql from 'serverless-mysql';
+import { OkPacket } from 'mysql';
+import { Resolvers, TaskStatus } from '../../generated/graphql-backend';
 
 const typeDefs = gql`
   enum TaskStatus {
@@ -37,21 +38,68 @@ const typeDefs = gql`
   }
 `;
 
-interface ApolloContext {
+type ApolloContext = {
   db: mysql.ServerlessMysql;
-}
+};
 
-const resolvers: IResolvers<any, ApolloContext> = {
+type Task = {
+  id: number;
+  title: string;
+  status: TaskStatus;
+};
+
+type TaskDbRow = {
+  id: number;
+  title: string;
+  task_status: TaskStatus;
+};
+
+type TaskDbQueryResult = TaskDbRow[];
+
+const resolvers: Resolvers<ApolloContext> = {
   Query: {
     async tasks(parent, args, context) {
-      const result = await context.db.query(
-        'SELECT "HELLO WORLD" as hello_world'
-      );
+      const { status } = args;
+      let qry = 'SELECT id, title, task_status FROM tasks WHERE 1 = 1';
+      const qryParams: string[] = [];
+      if (status) {
+        qry += ' AND task_status = ?';
+        qryParams.push(status);
+      }
+      const tasks = await context.db.query<TaskDbQueryResult>(qry, qryParams);
       await db.end();
-      console.log(result);
-      return [];
+      return tasks.map(({ id, title, task_status }) => {
+        return {
+          id,
+          title,
+          status: task_status,
+        };
+      });
     },
     task() {
+      return null;
+    },
+  },
+  Mutation: {
+    async createTask(
+      parent,
+      args: { input: { title: string } },
+      context
+    ): Promise<Task> {
+      const result = await context.db.query<OkPacket>(
+        'INSERT INTO tasks (title, task_status) VALUES (?, ?)',
+        [args.input.title, TaskStatus.Active]
+      );
+      return {
+        id: result.insertId,
+        title: args.input.title,
+        status: TaskStatus.Active,
+      };
+    },
+    updateTask(parent, args, context) {
+      return null;
+    },
+    deleteTask(parent, args, context) {
       return null;
     },
   },
